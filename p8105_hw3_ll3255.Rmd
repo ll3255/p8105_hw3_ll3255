@@ -5,13 +5,102 @@ date: "10/06/2019"
 output: github_document
 ---
 
-```{r setup, include = FALSE}
+```{r setup, include=FALSE}
 library(tidyverse)
-library(dplyr)
+library(ggridges)
+library(patchwork)
+library(viridis)
+
+theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
 Problem 1
 ```{r}
 library(p8105.datasets)
 data("instacart")
+
+instacart %>% view
 ```
+The instacart dataset reflects the business of the instacart online groceryordering service. Order data includes the ailse and deartment information for the product as well as exactly when the order was placed and how frequently the customer uses the service. There are `r nrow(distinct(instacart, department))` departments and `r nrow(distinct(instacart, product_id))` items to choose from which have been ordered by `r nrow(distinct(instacart, user_id))` different customers.
+
+ * There are `r nrow(distinct(instacart, aisle_id))` aisles and aisles most ordered from are:
+```{r}
+instacart %>%
+  select(aisle, product_id) %>%
+  group_by(aisle) %>% 
+  summarize(n_aisle = n()) %>%
+  arrange(desc(n_aisle)) %>%
+  knitr::kable()
+```
+
+ 
+ * This plot reflects the number of items ordered in each aisle
+ 
+```{r}
+instacart %>%
+  group_by(aisle) %>% 
+  summarize(n_aisle = n()) %>%
+  filter(n_aisle > 10000) %>%
+  arrange(desc(n_aisle)) %>%
+  ggplot(aes(x = aisle, y = n_aisle, color = aisle)) +
+  geom_point() +
+  labs(
+    title = "Instacart Plot",
+    x = "aisle",
+    y = "number of orders")
+  
+  
+  #+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+ * This table shows the three most popular items in each of the aisles
+
+instacart %>%
+  select(aisle = "baking incredients", "dog food care", "packaged vegetables fruits") %>%
+  pivot_wider(
+    names_from = "aisle",
+    values_from = "count_order"
+  ) %>%
+  knitr::kable()
+
+ * This table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week:
+
+instacart %>%
+  select(product_name = "Pink Lady Apples", "Coffee Ice Cream") %>%
+  mutate(mean_time = mean(order_hour_of_day)) %>%
+  pivot_wider(
+    names_from = "order_dow",
+    values_from = "mean_time"
+  ) %>%
+  knitr::kable()
+
+
+
+Problem 2
+
+
+library(p8105.datasets)
+data("dataset_brfss")
+
+dataset_brfss %>% view
+
+Clean the `BRFSS Dataset`:
+dataset_brfss %>%
+  janitor::clean_names() %>%
+  #format to appropriate cariavle names
+  #focus on the overall health topic
+  #include responses from excellent to poor
+  #organize responses as factor taking levels ordered from poor to excellent
+
+
+ * In 2002, which states were observed at 7 or more locations? 
+ * What about in 2010?
+ * Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
+ * Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+ * Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+
+Problem 3
+
+accel_data = read_csv(file = "./data/accel_data.csv") %>%
+  view(accel_data)
