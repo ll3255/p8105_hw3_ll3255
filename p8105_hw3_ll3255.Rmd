@@ -30,6 +30,7 @@ instacart %>%
   group_by(aisle) %>% 
   summarize(n_aisle = n()) %>%
   arrange(desc(n_aisle)) %>%
+  head(3) %>%
   knitr::kable()
 ```
 
@@ -47,32 +48,37 @@ instacart %>%
   labs(
     title = "Instacart Plot",
     x = "aisle",
-    y = "number of orders")
-  
-  
-  #+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    y = "number of orders") +
+  theme(axis.text.x = element_text(angle = 70, hjust = 1))
 ```
 
  * This table shows the three most popular items in each of the aisles
-
+```{r}
 instacart %>%
-  select(aisle = "baking incredients", "dog food care", "packaged vegetables fruits") %>%
-  pivot_wider(
-    names_from = "aisle",
-    values_from = "count_order"
-  ) %>%
+  filter(aisle %in% c("packaged vegetables fruits", "dog food care", "baking ingredients")) %>%
+  group_by(aisle) %>% 
+  count(product_name, name = "product_count") %>%
+  mutate(count_ranking = min_rank (desc(product_count)) %>%
+  filter(min_rank(count_ranking) < 2) %>%
   knitr::kable()
+```
+# 
 
  * This table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week:
 
+```{r}
 instacart %>%
-  select(product_name = "Pink Lady Apples", "Coffee Ice Cream") %>%
-  mutate(mean_time = mean(order_hour_of_day)) %>%
+  filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  group_by(product_name, order_dow) %>%
+  summarize(mean_time = mean(order_hour_of_day)) %>%
+  #mutate(order_dow = day.name[order_dow]) %>%
   pivot_wider(
-    names_from = "order_dow",
-    values_from = "mean_time"
-  ) %>%
+   names_from = "order_dow", 
+   values_from = "mean_time")
+  )
   knitr::kable()
+```
+#  
 
 
 
