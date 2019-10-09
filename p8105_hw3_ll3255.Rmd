@@ -10,6 +10,7 @@ library(tidyverse)
 library(ggridges)
 library(patchwork)
 library(viridis)
+library(dplyr)
 
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
@@ -58,11 +59,11 @@ instacart %>%
   filter(aisle %in% c("packaged vegetables fruits", "dog food care", "baking ingredients")) %>%
   group_by(aisle) %>% 
   count(product_name, name = "product_count") %>%
-  mutate(count_ranking = min_rank (desc(product_count)) %>%
-  filter(min_rank(count_ranking) < 2) %>%
-  knitr::kable()
+  mutate(count_ranking = min_rank(desc(product_count))) %>%
+  filter(min_rank(count_ranking) < 4) %>%
+knitr::kable()
 ```
-# 
+
 
  * This table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week:
 
@@ -71,42 +72,151 @@ instacart %>%
   filter(product_name == c("Pink Lady Apples", "Coffee Ice Cream")) %>%
   group_by(product_name, order_dow) %>%
   summarize(mean_time = mean(order_hour_of_day)) %>%
-  #mutate(order_dow = day.name[order_dow]) %>%
   pivot_wider(
    names_from = "order_dow", 
-   values_from = "mean_time")
-  )
-  knitr::kable()
+   values_from = "mean_time") %>%
+  knitr::kable() 
+# round mean
+# numbers to days of week
 ```
-#  
-
+# mutate(order_dow = day.name[order_dow]) %>%
 
 
 Problem 2
 
-
+```{r}
 library(p8105.datasets)
-data("dataset_brfss")
+data("brfss_smart2010")
 
-dataset_brfss %>% view
+brfss_smart2010 %>% view
+```
 
 Clean the `BRFSS Dataset`:
-dataset_brfss %>%
-  janitor::clean_names() %>%
-  #format to appropriate cariavle names
-  #focus on the overall health topic
-  #include responses from excellent to poor
-  #organize responses as factor taking levels ordered from poor to excellent
-
+```{r}
+brfss_smart2010 %>%
+  janitor::clean_names() %>%   
+  rename(state = locationabbr, county = locationdesc) %>% #melt county?
+  filter(topic == "Overall Health") %>%
+  filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+  mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
+  knitr::kable() 
+```
 
  * In 2002, which states were observed at 7 or more locations? 
+```{r}
+brfss_smart2010 %>%
+    janitor::clean_names() %>%
+    rename(state = locationabbr, county = locationdesc) %>%
+  filter(year == 2002) %>%
+  group_by(state) %>%
+   summarize(
+    n_counties = n_distinct(county)) %>%
+  filter(n_counties > 6)
+```
+ 
  * What about in 2010?
+```{r}
+brfss_smart2010 %>%
+    janitor::clean_names() %>%
+    rename(state = locationabbr, county = locationdesc) %>%
+  filter(year == 2010) %>%
+  group_by(state) %>%
+   summarize(
+    n_counties = n_distinct(county)) %>%
+  filter(n_counties > 6)
+```
+
  * Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
+```{r}
+brfss_smart2010 %>%
+    janitor::clean_names() %>%
+    rename(state = locationabbr, county = locationdesc) %>%
+  filter(response == "Excellent") %>%
+  group_by(year, state, county) %>%
+  summarize(mean_data_value = mean(data_value)) %>%
+  select(year, state, county, mean_data_value)
+
+```
+
  * Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
- * Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+```{r}
+brfss_smart2010 %>%
+    janitor::clean_names() %>%
+    rename(state = locationabbr, county = locationdesc) %>%
+    group_by(year, state, county) %>%
+    summarize(mean_data_value = mean(data_value)) %>%
+ggplot(aes(x = year, y = mean_data_value)) + 
+  geom_line(aes(color = state), alpha = .5) + 
+  labs(
+    title = "Mean Value over Time by State",
+    x = "Year",
+    y = "Mean Value"
+  )
+
+# what does value mean?
+```
+
+
+ *Two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State
+```{r}
+response_2006 = 
+  brfss_smart2010 %>% 
+    janitor::clean_names() %>%
+      rename(state = locationabbr, county = locationdesc) %>%
+        filter(year == 2006, state == "NY") %>%
+          filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
+  ggplot(aes(x = data_value, y = response, color = response)) + 
+  geom_point(alpha = .5) 
+  
+response_2010 = 
+  brfss_smart2010 %>% 
+    janitor::clean_names() %>%
+      rename(state = locationabbr, county = locationdesc) %>%
+        filter(year == 2010, state == "NY") %>%
+          filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
+  ggplot(aes(x = data_value, y = response, color = response)) + 
+  geom_point(alpha = .5)  
+
+(response_2006 + response_2010)
+```
 
 
 Problem 3
 
-accel_data = read_csv(file = "./data/accel_data.csv") %>%
+Import data:
+```{r}
+accel_data = read_csv(file = "./data/accel_data.csv")
   view(accel_data)
+```
+
+
+Clean and tidy:
+```{r}
+accel_data  %>% 
+  janitor::clean_names() %>%
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "activity_min",
+    values_to = "activity_count") %>%
+    mutate(activity_min = stringr::str_replace(activity_min, "activity_", "")) %>%
+    mutate(activity_min = as.numeric(activity_min)) %>%
+    mutate(weekday = day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"),
+           weekend = day %in% c("Saturday", "Sunday")) 
+```
+# Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+
+
+2) Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. 
+```{r}
+
+```
+# Are any trends apparent?
+
+
+3)Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
+```{r}
+
+```
+# Describe in words any patterns or conclusions you can make based on this graph
