@@ -194,7 +194,8 @@ accel_data = read_csv(file = "./data/accel_data.csv")
 
 Clean and tidy:
 ```{r}
-accel_data  %>% 
+accel_data_tidy =
+  accel_data %>%
   janitor::clean_names() %>%
   pivot_longer(
     activity_1:activity_1440,
@@ -208,15 +209,28 @@ accel_data  %>%
 # Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
 
 
-2) Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. 
+2) Traditional analyses of accelerometer data focus on the total activity over the day. 
+Using your tidied dataset, aggregate accross minutes to create a 
+total activity variable for each day, 
+and create a table showing these totals. 
 ```{r}
-
+accel_data_tidy %>%
+  group_by(day_id) %>%
+    summarize(daily_activity = mean(activity_count)) %>%
+  knitr::kable()
 ```
+#   pivot_wider(
+    names_from = day_id,
+    values_from = daily_activity
 # Are any trends apparent?
 
 
-3)Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
+3)Accelerometer data allows the inspection activity over the course of the day. 
+Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
 ```{r}
-
+accel_data_tidy %>%
+  janitor::clean_names() %>%
+    group_by(day_id) %>%
+    ggplot(aes(x = activity_min, y = day_id, color = day_id)) + geom_line(alpha = .5)  
 ```
 # Describe in words any patterns or conclusions you can make based on this graph
