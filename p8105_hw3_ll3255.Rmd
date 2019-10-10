@@ -20,7 +20,7 @@ Problem 1
 library(p8105.datasets)
 data("instacart")
 
-instacart %>% view
+instacart
 ```
 The instacart dataset reflects the business of the instacart online groceryordering service. Order data includes the ailse and deartment information for the product as well as exactly when the order was placed and how frequently the customer uses the service. There are `r nrow(distinct(instacart, department))` departments and `r nrow(distinct(instacart, product_id))` items to choose from which have been ordered by `r nrow(distinct(instacart, user_id))` different customers.
 
@@ -36,7 +36,7 @@ instacart %>%
 ```
 
  
- * This plot reflects the number of items ordered in each aisle
+ * This plot reflects the number of items ordered in each aisle:
  
 ```{r}
 instacart %>%
@@ -75,9 +75,9 @@ instacart %>%
   pivot_wider(
    names_from = "order_dow", 
    values_from = "mean_time") %>%
-  knitr::kable() 
-# round mean
-# numbers to days of week
+  knitr::kable(digits = 3)
+
+# mutate(order_dow = recode(order_dow, 0 = "Monday", 2 = "Tuesday", 3 = "Wednesday", 4 = "Thursday", 5= "Friday", 6 = "Saturday")
 ```
 # mutate(order_dow = day.name[order_dow]) %>%
 
@@ -88,19 +88,25 @@ Problem 2
 library(p8105.datasets)
 data("brfss_smart2010")
 
-brfss_smart2010 %>% view
+brfss_smart2010 
 ```
 
 Clean the `BRFSS Dataset`:
 ```{r}
+tidy_brfss = 
 brfss_smart2010 %>%
   janitor::clean_names() %>%   
-  rename(state = locationabbr, county = locationdesc) %>% #melt county?
+  rename(state = locationabbr, county = locationdesc) %>% 
   filter(topic == "Overall Health") %>%
   filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
-  mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
-  knitr::kable() 
+  mutate(response = forcats::fct_relevel(response, c("Poor", "Fair", "Good","Very good", "Excellent"))) %>%
+  separate(county, into = c("state2", "county"), sep = 3) %>%
+  mutate(county = stringr::str_replace(county, "- ", "")) %>%
+  select(-state2) 
 ```
+# mutate(county = stringr::str_replace(county, " - ", "")) %>%
+# mutate(response = forcats::fct_relevel(response, c("Poor", "Fair", "Good","Very good", "Excellent"))) %>%
+# mutate(response = factor(response, levels = c("Poor", "Fair","Good","Very good", "Excellent")))
 
  * In 2002, which states were observed at 7 or more locations? 
 ```{r}
@@ -128,59 +134,42 @@ brfss_smart2010 %>%
 
  * Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
 ```{r}
-brfss_smart2010 %>%
-    janitor::clean_names() %>%
-    rename(state = locationabbr, county = locationdesc) %>%
+tidy_brfss %>% 
   filter(response == "Excellent") %>%
-  group_by(year, state, county) %>%
-  summarize(mean_data_value = mean(data_value)) %>%
-  select(year, state, county, mean_data_value)
-
-```
-
- * Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
-```{r}
-brfss_smart2010 %>%
-    janitor::clean_names() %>%
-    rename(state = locationabbr, county = locationdesc) %>%
     group_by(year, state, county) %>%
-    summarize(mean_data_value = mean(data_value)) %>%
-ggplot(aes(x = year, y = mean_data_value)) + 
-  geom_line(aes(color = state), alpha = .5) + 
+    summarize(mean_data_value = mean(data_value, na.rm = TRUE)) %>%
+    select(year, state, county, mean_data_value) %>%
+  ggplot(aes(x = year, y = mean_data_value, color = state)) + geom_line() + 
   labs(
     title = "Mean Value over Time by State",
     x = "Year",
-    y = "Mean Value"
-  )
-
-# what does value mean?
+    y = "Mean Value")
 ```
-
 
  *Two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State
 ```{r}
 response_2006 = 
-  brfss_smart2010 %>% 
-    janitor::clean_names() %>%
-      rename(state = locationabbr, county = locationdesc) %>%
+  tidy_brfss %>%
         filter(year == 2006, state == "NY") %>%
-          filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
-          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
-  ggplot(aes(x = data_value, y = response, color = response)) + 
+  ggplot(aes(x = response, y = data_value, color = response)) + 
   geom_point(alpha = .5) 
   
 response_2010 = 
-  brfss_smart2010 %>% 
-    janitor::clean_names() %>%
-      rename(state = locationabbr, county = locationdesc) %>%
+  tidy_brfss %>%
         filter(year == 2010, state == "NY") %>%
-          filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
-          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
-  ggplot(aes(x = data_value, y = response, color = response)) + 
+  ggplot(aes(x = response, y = data_value, color = response)) + 
   geom_point(alpha = .5)  
 
 (response_2006 + response_2010)
+
+# + facet_grid(day_of_tx ~ outcome)
 ```
+         
+    redundant:      filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
+
+          filter(response %in% c("Poor", "Fair", "Good", "Very good", "Excellent")) %>% 
+          mutate(response = factor(response, levels = c("Excellent", "Very good", "Good", "Fair", "Poor"))) %>%
 
 
 Problem 3
@@ -188,9 +177,9 @@ Problem 3
 Import data:
 ```{r}
 accel_data = read_csv(file = "./data/accel_data.csv")
-  view(accel_data)
-```
 
+accel_data
+```
 
 Clean and tidy:
 ```{r}
@@ -205,8 +194,11 @@ accel_data_tidy =
     mutate(activity_min = as.numeric(activity_min)) %>%
     mutate(weekday = day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday"),
            weekend = day %in% c("Saturday", "Sunday")) 
+
+accel_data_tidy
 ```
 # Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+This dataset is tracking a study particpants activity across the `r nrow(distinct(accel_data_tidy, day_id))` days of the study. The columns track the week of the study, the day of the week as well as if it is a weekday or a weekend. The participants activity is level is trarcked every minute. Over the course of the study his average acticity count was `r mean(pull(accel_data_tidy, activity_count))`, median acticity was `r median(pull(accel_data_tidy, activity_count))` and standard deviation was `r sd(pull(accel_data_tidy, activity_count))`.
 
 
 2) Traditional analyses of accelerometer data focus on the total activity over the day. 
@@ -219,10 +211,18 @@ accel_data_tidy %>%
     summarize(daily_activity = mean(activity_count)) %>%
   knitr::kable()
 ```
-#   pivot_wider(
-    names_from = day_id,
-    values_from = daily_activity
-# Are any trends apparent?
+```{r}
+# Any trends?
+accel_data_tidy %>%
+  group_by(week, day_id) %>%
+    summarize(daily_activity = mean(activity_count)) %>%
+  ggplot(aes(x = day_id, y = daily_activity, color = week)) + geom_polygon() + scale_x_continuous(
+    breaks = c(7, 14, 21, 29), 
+    labels = c("Week 1", "Week 2", "Week 3", "Week 4"))
+```
+
+
+From the starrt of the study until the end of the study, the participants generalactivity level declined
 
 
 3)Accelerometer data allows the inspection activity over the course of the day. 
@@ -231,6 +231,11 @@ Make a single-panel plot that shows the 24-hour activity time courses for each d
 accel_data_tidy %>%
   janitor::clean_names() %>%
     group_by(day_id) %>%
-    ggplot(aes(x = activity_min, y = day_id, color = day_id)) + geom_line(alpha = .5)  
+    ggplot(aes(x = activity_count, y = day_id, color = day)) + geom_point(alpha = .5)   + 
+  labs(
+    title = "Activity tracker for John Doe",
+    x = "Activity level",
+    y = "Day of the study"
+  )
 ```
 # Describe in words any patterns or conclusions you can make based on this graph
