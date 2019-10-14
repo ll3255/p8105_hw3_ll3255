@@ -16,6 +16,8 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
 Problem 1
+
+Access instacart data:
 ```{r}
 library(p8105.datasets)
 data("instacart")
@@ -244,3 +246,4 @@ labels = c("0100h","0200h", "0300h", "0400h", "0500h", "0600h", "0700h", "0800h"
   theme(axis.text.x = element_text(angle = 70, hjust = 1))
 ```
 # Patterns or conclusions: It looks like the participant generally starts their day around 6:00. The activity level begins to increase then and plateaus around 8:00 am where it remains constant until around 6:00 pm, perhaps this is when the participant is at work. On Monday, Friday and Saturday there is another exertion and then steady decline in activity, the other days the decline begins from the plateu.There does appear to be one Saturday with no activity which could be a device malfunction or an extremely restful day for the participant.
+
